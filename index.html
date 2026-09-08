@@ -75,7 +75,7 @@
             line-height: 1.5;
         }
 
-        /* STYLES UNTUK TAB NAVIGASI */
+        /* STYLES TAB NAVIGASI */
         .tab-container {
             display: flex;
             gap: 10px;
@@ -387,8 +387,8 @@
 
     <!-- TAB NAVIGATION -->
     <div class="tab-container">
-        <button type="button" class="tab-btn active" onclick="switchTab('tab-submit')">Submit Data LSP</button>
-        <button type="button" class="tab-btn" onclick="switchTab('tab-cetak')">Cetak LSP</button>
+        <button type="button" class="tab-btn active" onclick="switchTab('tab-submit', event)">Submit Data LSP</button>
+        <button type="button" class="tab-btn" onclick="switchTab('tab-cetak', event)">Cetak LSP</button>
     </div>
 
     <!-- TAB 1: FORM INPUT SUBMIT DATA -->
@@ -690,8 +690,11 @@
             <div id="info_nasabah_card" class="info-card" style="display: none;">
                 <strong>Detail Data Nasabah Terpilih:</strong><br>
                 <span>👤 <strong>Nama:</strong> <span id="info_nama">-</span></span><br>
-                <span>📅 <strong>Tanggal Input:</strong> <span id="info_tanggal">-</span></span><br>
-                <span>📍 <strong>Alamat Agunan:</strong> <span id="info_alamat">-</span></span>
+                <span>📋 <strong>KUU:</strong> <span id="info_kuu">-</span></span><br>
+                <span>👨‍💼 <strong>AOM (Penilai):</strong> <span id="info_aom">-</span></span><br>
+                <span>🏢 <strong>Unit:</strong> <span id="info_unit">-</span></span><br>
+                <span>📍 <strong>Alamat Agunan:</strong> <span id="info_alamat">-</span></span><br>
+                <span>📅 <strong>Tanggal Input:</strong> <span id="info_tanggal">-</span></span>
             </div>
 
             <div class="btn-container" style="margin-top: 25px; margin-bottom: 10px;">
@@ -713,12 +716,14 @@ window.onload = function() {
     loadDataNasabah();
 };
 
-function switchTab(tabId) {
+function switchTab(tabId, evt) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     
     document.getElementById(tabId).classList.add('active');
-    event.currentTarget.classList.add('active');
+    if (evt && evt.currentTarget) {
+        evt.currentTarget.classList.add('active');
+    }
 }
 
 function loadDataUnit() {
@@ -765,6 +770,11 @@ function setupAutocomplete() {
     inp.addEventListener("input", function(e) {
         const val = this.value;
         closeAllLists();
+        
+        selectedNasabahData = null;
+        document.getElementById("info_nasabah_card").style.display = "none";
+        document.getElementById("btnCetak").disabled = true;
+
         if (!val) { return false; }
         
         const listDiv = document.getElementById("autocomplete-list");
@@ -772,7 +782,7 @@ function setupAutocomplete() {
         dataNasabahList.forEach(item => {
             if (item.nama && item.nama.toLowerCase().includes(val.toLowerCase())) {
                 const b = document.createElement("DIV");
-                b.innerHTML = `<strong>${item.nama}</strong> - ${item.alamat}`;
+                b.innerHTML = `<strong>${item.nama}</strong> - ${item.alamat || ''}`;
                 b.addEventListener("click", function() {
                     inp.value = item.nama;
                     selectedNasabahData = item;
@@ -786,14 +796,19 @@ function setupAutocomplete() {
 }
 
 function displayNasabahInfo(item) {
-    document.getElementById("info_nama").innerText = item.nama;
+    // Membaca secara langsung variabel kuu, diperiksa_oleh (AOM), dan unit_ulamm dari Sheet DATA
+    document.getElementById("info_nama").innerText = item.nama || '-';
+    document.getElementById("info_kuu").innerText = item.kuu || '-';
+    document.getElementById("info_aom").innerText = item.diperiksa_oleh || '-';
+    document.getElementById("info_unit").innerText = item.unit_ulamm || '-';
+    document.getElementById("info_alamat").innerText = item.alamat || '-';
     document.getElementById("info_tanggal").innerText = item.tanggalInput ? new Date(item.tanggalInput).toLocaleDateString('id-ID') : '-';
-    document.getElementById("info_alamat").innerText = item.alamat;
-    document.getElementById("info_card").style.display = "block";
+    
+    document.getElementById("info_nasabah_card").style.display = "block";
     document.getElementById("btnCetak").disabled = false;
 }
 
-function closeAllLists(elmnt) {
+function closeAllLists() {
     const x = document.getElementById("autocomplete-list");
     x.innerHTML = "";
 }
@@ -814,7 +829,7 @@ function submitForm(e) {
     .then(response => {
         alert('Formulir berhasil disimpan! Mohon konfirmasi ke KAM ULaMM UMBULHARJO.');
         form.reset();
-        loadDataNasabah(); // Refresh data nasabah untuk pencetakan
+        loadDataNasabah();
     })
     .catch(error => {
         console.error('Error!', error.message);
@@ -828,7 +843,7 @@ function submitForm(e) {
 
 function prosesCetakLSP() {
     if (!selectedNasabahData) {
-        alert("Silakan pilih nasabah terlebih dahulu!");
+        alert("Silakan pilih nasabah terlebih dahulu dari daftar!");
         return;
     }
     
@@ -841,7 +856,6 @@ function prosesCetakLSP() {
     .then(res => {
         if (res.status === 'success') {
             alert('LSP Berhasil Di-generate & Disimpan di Google Drive!');
-            // Auto Download File PDF
             const link = document.createElement('a');
             link.href = res.downloadUrl;
             link.target = '_blank';
