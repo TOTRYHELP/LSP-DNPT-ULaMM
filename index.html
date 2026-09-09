@@ -856,7 +856,7 @@ function prosesCetakLSP() {
     .then(res => res.json())
     .then(res => {
         if (res.status === 'success') {
-            alert('LSP Berhasil Di-generate & Disimpan di Google Drive!');
+            alert('LSP Berhasil Cetak, Tunggu Pop Up Auto Download');
             const link = document.createElement('a');
             link.href = res.downloadUrl;
             link.target = '_blank';
